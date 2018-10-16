@@ -42,18 +42,76 @@ mongoose.connect("mongodb://localhost/abridge", { useNewUrlParser: true });
 
 app.get("/", function(req, res) {
 
-  db.Article.find({})
-    .then(function(dbArticle) {
-      // If we were able to successfully find Articles, send them back to the client
-      var obj = { articles: dbArticle}
-      console.log(obj);
-      res.render("index", obj);
-    })
-    .catch(function(err) {
-      // If an error occurred, send it to the client
-      res.json(err);
+  function finder(){
+    db.Article.find({})
+      .then(function(dbArticle) {
+        // If we were able to successfully find Articles, send them back to the client
+        var obj = { articles: dbArticle}
+        console.log(obj);
+        console.log('reached 4');
+        res.render("index", obj);
+      })
+      .catch(function(err) {
+        
     });
+  }
+
+  function creator(count, result, callback){
+    db.Article.create(result)
+      .then(function(dbArticle) {
+        // View the added result in the console
+        console.log(dbArticle);
+        if(count > 8.5){
+          finder();
+        }
+
+      })
+      .catch(function(err) {
+        if(count > 8.5){
+          finder();
+        }
+    });
+  }
+
+  function loop($){
+    let count = 0;
+    $("h3").each(function(i, element) {
+      // Save an empty result object
+      var result = {};
+
+      // Add the text and href of every link, and save them as properties of the result object
+      result.title = $(this)
+        .children("a")
+        .text();
+      result.link = $(this)
+        .children("a")
+        .attr("href");
+
+      console.log(result);
+      if(result.link){
+        count = count + 1;
+      }
+      console.log(count);
+
+      // Create a new Article using the `result` object built from scraping
+      if(count < 9.5){
+        creator(count,result);
+      }
+    });
+
+    callback();
+
+  }
+
+  axios.get("http://www.cracked.com/funny-articles.html").then(function(response) {
+    // Then, we load that into cheerio and save it to $ for a shorthand selector
+    var $ = cheerio.load(response.data);
+
+    loop($);
+    
+  });
 });
+
 
 // A GET route for scraping the echoJS website
 app.get("/scrape", function(req, res) {
@@ -92,6 +150,11 @@ app.get("/scrape", function(req, res) {
     // If we were able to successfully scrape and save an Article, send a message to the client
     res.send("Scrape Complete");
   });
+});
+
+app.get("/remove", function(req, res) {
+  // Grab every document in the Articles collection
+  db.Article.remove({}).then(function(data){res.json({'asdf': 'asdf'})});
 });
 
 // Route for getting all Articles from the db
